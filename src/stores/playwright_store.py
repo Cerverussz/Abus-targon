@@ -69,6 +69,16 @@ class PlaywrightDetector(Detector):
                     pass  # algunos sitios nunca quedan idle; seguimos igual.
                 page.wait_for_timeout(wait_ms)
 
+                # Diagnóstico: nos dice si la URL es válida o redirige (útil
+                # cuando una tienda devuelve NOT_LISTED inesperadamente).
+                try:
+                    logger.info(
+                        "[%s] título='%s' url_final=%s",
+                        store_key, (page.title() or "")[:120], page.url,
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+
                 full_text = (page.inner_text("body") or "")
                 if detect.get("require_mips", False) and "mips" not in full_text.lower():
                     return make_result(store_key, cfg, Status.NOT_LISTED)
