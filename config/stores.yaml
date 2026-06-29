@@ -1,0 +1,94 @@
+# Configuración de tiendas para el monitor Abus Targon MIPS (talla M, 55–58 cm).
+#
+# Para AGREGAR una tienda: añade una entrada bajo `stores:` con su `method`
+# (shopify | static | playwright) y su bloque `detect:`. No hay que tocar código.
+#
+# Campos por tienda:
+#   name      -> nombre legible (aparece en la notificación)
+#   country   -> país (texto libre)
+#   currency  -> moneda para mostrar el precio (EUR, USD, COP, ...)
+#   url       -> URL del producto (o de la colección, para catálogos Shopify)
+#   method    -> shopify | static | playwright
+#   enabled   -> (opcional) false para desactivar sin borrar
+#   detect:   -> keywords/selectores de detección (ver ejemplos)
+#
+# Keywords de detección (detect):
+#   size_keywords         -> textos que identifican la talla M / 55–58
+#   available_keywords    -> señales de disponibilidad (solo para static/playwright)
+#   unavailable_keywords  -> señales de agotado
+#   preorder_keywords     -> señales de preventa/backorder
+#   price_selector        -> (CSS) nodo con el precio
+#   size_selector         -> (CSS) opciones/variantes de talla
+#   add_to_cart_selector  -> (CSS) botón de añadir al carrito
+#   require_mips          -> true para exigir que la página mencione "mips"
+#   search_term           -> (catálogo) término a buscar en la colección
+#   color                 -> color por defecto a registrar si la página no lo expone
+
+stores:
+
+  lordgun:
+    name: LordGun
+    country: España
+    currency: EUR
+    url: https://www.lordgunbicycles.es/casco-abus-targon-mips
+    method: playwright
+    detect:
+      require_mips: true
+      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium", " M "]
+      size_selector: "select[name*='attribute'] option, .product-variants option, [data-attribute] li"
+      add_to_cart_selector: "button#add-to-cart, button[name='add'], .add-to-cart"
+      price_selector: ".current-price, .product-price, [itemprop='price']"
+      available_keywords: ["en stock", "disponible", "añadir al carrito", "agregar al carrito"]
+      unavailable_keywords: ["agotado", "sin stock", "out of stock", "no disponible", "avísame", "notify me"]
+
+  all4cycling:
+    name: All4cycling
+    country: Italia
+    currency: EUR
+    url: https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero
+    method: playwright
+    detect:
+      require_mips: true
+      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
+      size_selector: ".product-variants option, select option, [data-option] li"
+      add_to_cart_selector: "button#add-to-cart, button[name='add'], .btn-add-to-cart"
+      price_selector: ".current-price, .price, [itemprop='price']"
+      available_keywords: ["in stock", "add to cart", "disponibile", "aggiungi al carrello"]
+      unavailable_keywords: ["out of stock", "esaurito", "non disponibile", "sold out", "backorder", "notify me"]
+
+  abus_oficial:
+    name: Abus oficial (US)
+    country: USA
+    currency: USD
+    url: https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US
+    method: playwright
+    detect:
+      require_mips: true
+      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
+      size_selector: "select option, .variant option, [data-size] li, .size-selector li"
+      add_to_cart_selector: "button.add-to-cart, button[name='add'], .btn-buy"
+      price_selector: ".price, [itemprop='price'], .product-price"
+      available_keywords: ["in stock", "add to cart", "buy now"]
+      unavailable_keywords: ["out of stock", "sold out", "backorder", "backordered", "notify me", "coming soon"]
+
+  dscbike:
+    name: DSCBike
+    country: Colombia
+    currency: COP
+    url: https://dscbike.com/collections/abus
+    method: shopify
+    detect:
+      require_mips: true
+      search_term: "targon"
+      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
+
+  bicimarket:
+    name: BiciMarket
+    country: Colombia
+    currency: COP
+    url: https://bicimarket.com.co/collections/abus
+    method: shopify
+    detect:
+      require_mips: true
+      search_term: "targon"
+      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]

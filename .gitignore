@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Logs / temp
+*.log
+.DS_Store
+
+# Playwright
+/playwright-report/
+/test-results/
+
+# NOTE: state.json is intentionally NOT ignored.
+# It is committed (locally and by the GitHub Actions workflow) so the
+# "notify only on change" logic survives across ephemeral CI runs.
