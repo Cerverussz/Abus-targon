@@ -1,0 +1,49 @@
+{
+  "stores": {
+    "abus_oficial": {
+      "checked_at": "2026-06-29T23:28:17+00:00",
+      "color": null,
+      "currency": "USD",
+      "price": null,
+      "size": "M",
+      "status": "OUT_OF_STOCK",
+      "url": "https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US"
+    },
+    "all4cycling": {
+      "checked_at": "2026-06-29T23:28:11+00:00",
+      "color": null,
+      "currency": "EUR",
+      "price": null,
+      "size": "M",
+      "status": "OUT_OF_STOCK",
+      "url": "https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero"
+    },
+    "bicimarket": {
+      "checked_at": "2026-06-29T23:28:17+00:00",
+      "color": null,
+      "currency": "COP",
+      "price": null,
+      "size": "M",
+      "status": "NOT_LISTED",
+      "url": "https://bicimarket.com.co/collections/abus"
+    },
+    "dscbike": {
+      "checked_at": "2026-06-29T23:28:17+00:00",
+      "color": null,
+      "currency": "COP",
+      "price": null,
+      "size": "M",
+      "status": "NOT_LISTED",
+      "url": "https://dscbike.com/collections/abus"
+    },
+    "lordgun": {
+      "checked_at": "2026-06-29T23:28:00+00:00",
+      "color": null,
+      "currency": "EUR",
+      "price": null,
+      "size": "M",
+      "status": "NOT_LISTED",
+      "url": "https://www.lordgunbicycles.es/casco-abus-targon-mips"
+    }
+  }
+}
