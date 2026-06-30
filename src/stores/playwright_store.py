@@ -14,6 +14,7 @@ from .base import (
     USER_AGENT,
     Detector,
     classify_text,
+    is_antibot,
     make_result,
     text_has_any,
 )
@@ -52,14 +53,39 @@ class PlaywrightDetector(Detector):
         url = cfg["url"]
         size_keywords = detect.get("size_keywords", ["M", "55", "55-58", "medium"])
         wait_ms = int(detect.get("wait_ms", 4000))
+        # Segundos máximos a esperar a que un challenge (Cloudflare) se resuelva.
+        challenge_wait_ms = int(detect.get("challenge_wait_ms", 20000))
 
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
+            browser = pw.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ],
+            )
             try:
                 context = browser.new_context(
                     user_agent=USER_AGENT,
-                    locale="es-ES",
+                    locale=detect.get("locale", "es-ES"),
+                    timezone_id=detect.get("timezone", "America/Bogota"),
                     viewport={"width": 1366, "height": 900},
+                    extra_http_headers={
+                        "Accept-Language": detect.get(
+                            "accept_language", "es-ES,es;q=0.9,en;q=0.8"
+                        ),
+                        "Upgrade-Insecure-Requests": "1",
+                    },
+                )
+                # Enmascarar señales típicas de automatización antes de cargar.
+                context.add_init_script(
+                    "Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
+                    "window.chrome={runtime:{}};"
+                    "Object.defineProperty(navigator,'languages',"
+                    "{get:()=>['es-ES','es','en']});"
+                    "Object.defineProperty(navigator,'plugins',"
+                    "{get:()=>[1,2,3,4,5]});"
                 )
                 page = context.new_page()
                 page.goto(url, wait_until="domcontentloaded", timeout=45000)
@@ -69,17 +95,32 @@ class PlaywrightDetector(Detector):
                     pass  # algunos sitios nunca quedan idle; seguimos igual.
                 page.wait_for_timeout(wait_ms)
 
-                # Diagnóstico: nos dice si la URL es válida o redirige (útil
-                # cuando una tienda devuelve NOT_LISTED inesperadamente).
+                # Si caímos en un challenge anti-bot, esperar a que se resuelva
+                # solo (Cloudflare suele redirigir al contenido tras unos seg).
+                self._wait_out_challenge(page, challenge_wait_ms)
+
+                title = ""
                 try:
-                    logger.info(
-                        "[%s] título='%s' url_final=%s",
-                        store_key, (page.title() or "")[:120], page.url,
-                    )
+                    title = page.title() or ""
                 except Exception:  # noqa: BLE001
                     pass
-
                 full_text = (page.inner_text("body") or "")
+
+                # Diagnóstico: título + URL final (revela redirecciones/bloqueos).
+                logger.info(
+                    "[%s] título='%s' url_final=%s",
+                    store_key, title[:120], page.url,
+                )
+
+                # Bloqueo anti-bot no superado -> ERROR honesto (no AGOTADO),
+                # para no perder una eventual transición a DISPONIBLE.
+                if is_antibot(title, full_text):
+                    logger.warning("[%s] bloqueo anti-bot no superado.", store_key)
+                    return make_result(
+                        store_key, cfg, Status.ERROR,
+                        error=f"bloqueo anti-bot (título={title[:60]!r})",
+                    )
+
                 if detect.get("require_mips", False) and "mips" not in full_text.lower():
                     return make_result(store_key, cfg, Status.NOT_LISTED)
 
@@ -92,6 +133,27 @@ class PlaywrightDetector(Detector):
                 return make_result(store_key, cfg, status, price=price, color=color)
             finally:
                 browser.close()
+
+    @staticmethod
+    def _wait_out_challenge(page, max_ms: int) -> None:
+        """Espera a que un interstitial tipo Cloudflare se resuelva solo.
+
+        Sondea el título/cuerpo cada ~1.5s; en cuanto deja de parecer un
+        challenge, continúa. Si agota el tiempo, sigue igual (luego se
+        clasificará como ERROR si seguía bloqueado).
+        """
+        waited = 0
+        step = 1500
+        while waited < max_ms:
+            try:
+                title = page.title() or ""
+                body = page.inner_text("body") or ""
+            except Exception:  # noqa: BLE001
+                title, body = "", ""
+            if not is_antibot(title, body):
+                return
+            page.wait_for_timeout(step)
+            waited += step
 
     def _evaluate(self, page, cfg, detect, size_keywords, full_text) -> Status:
         from playwright.sync_api import TimeoutError as PWTimeout
