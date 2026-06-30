@@ -38,6 +38,10 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Para tiendas con method: scraper (LordGun/Abus). Si no se define
+          # el secret, esas tiendas quedan en ERROR y el resto sigue igual.
+          SCRAPER_PROVIDER: ${{ secrets.SCRAPER_PROVIDER }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
         run: python -m src.checker
 
       - name: Persist state.json

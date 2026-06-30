@@ -8,7 +8,9 @@
 #   country   -> país (texto libre)
 #   currency  -> moneda para mostrar el precio (EUR, USD, COP, ...)
 #   url       -> URL del producto (o de la colección, para catálogos Shopify)
-#   method    -> shopify | static | playwright
+#   method    -> shopify | static | playwright | scraper
+#                (scraper = vía servicio externo que resuelve Cloudflare/Akamai;
+#                 requiere SCRAPER_API_KEY y SCRAPER_PROVIDER en el entorno)
 #   enabled   -> (opcional) false para desactivar sin borrar
 #   detect:   -> keywords/selectores de detección (ver ejemplos)
 #
@@ -25,6 +27,7 @@
 #   fallback_search       -> (shopify) si el término no está en la colección,
 #                            buscar en TODA la tienda vía /search/suggest.json
 #                            (por defecto true)
+#   scraper_country       -> (scraper) código de país para el proxy (es, us...)
 #   color                 -> color por defecto a registrar si la página no lo expone
 
 stores:
@@ -34,11 +37,12 @@ stores:
     country: España
     currency: EUR
     url: https://www.lordgunbicycles.es/casco-abus-targon-mips
-    method: playwright
+    # Cloudflare bloquea al headless: se enruta por servicio de scraping
+    # (SCRAPER_API_KEY/SCRAPER_PROVIDER en el entorno).
+    method: scraper
     detect:
-      # URL de producto directa: no aplicamos el filtro NOT_LISTED de catálogo
-      # (require_mips). El detector loguea título/URL final para diagnóstico.
       require_mips: false
+      scraper_country: es
       size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium", " M "]
       size_selector: "select[name*='attribute'] option, .product-variants option, [data-attribute] li"
       add_to_cart_selector: "button#add-to-cart, button[name='add'], .add-to-cart"
@@ -66,9 +70,11 @@ stores:
     country: USA
     currency: USD
     url: https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US
-    method: playwright
+    # Akamai "Access Denied" bloquea al headless: se enruta por scraping.
+    method: scraper
     detect:
       require_mips: true
+      scraper_country: us
       size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
       size_selector: "select option, .variant option, [data-size] li, .size-selector li"
       add_to_cart_selector: "button.add-to-cart, button[name='add'], .btn-buy"
