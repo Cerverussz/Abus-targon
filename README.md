@@ -33,11 +33,18 @@ Cada tienda declara su `method` en `stores.yaml`:
 |--------------|----------------------------------------------------|----------------------------|
 | `shopify`    | tiendas Shopify (DSCBike, BiciMarket)              | `variant.available` del JSON de Shopify (dato estructurado, fiable) |
 | `static`     | páginas estáticas (HTML servido tal cual)          | `httpx` + BeautifulSoup + keywords/selectores |
-| `playwright` | sitios con JS (LordGun, All4cycling, Abus oficial) | Chromium headless: la M debe ser seleccionable y el carrito habilitado |
+| `playwright` | sitios con JS sin anti-bot (All4cycling)           | Chromium headless: la M debe ser seleccionable y el carrito habilitado |
+| `scraper`    | sitios con anti-bot (LordGun/Cloudflare, Abus/Akamai) | servicio externo renderiza y resuelve el challenge; se parsea el HTML con keywords/selectores |
 
 Las tiendas colombianas usan `shopify` apuntando a la colección `/collections/abus`:
-se busca el término `targon`; si no aparece, se marca `NOT_LISTED` (sirve para detectar
+se busca el término `targon`; si no aparece, se busca en toda la tienda
+(`/search/suggest.json`) y, si tampoco está, se marca `NOT_LISTED` (sirve para detectar
 cuándo el modelo aterriza en Colombia).
+
+Si un sitio bloquea al navegador (Cloudflare "Un momento…", Akamai "Access Denied"),
+el detector **no inventa un estado**: devuelve `ERROR` (no "agotado"), para no perder
+una eventual disponibilidad. El método `scraper` enruta esos sitios por un servicio
+externo que sí supera el bloqueo (ver abajo).
 
 ---
 
@@ -71,6 +78,29 @@ python -m src.notifier --test
 ```
 
 Debe llegarte un mensaje de prueba al chat.
+
+### Servicio de scraping (tiendas con anti-bot)
+
+LordGun (Cloudflare) y Abus US (Akamai) bloquean al navegador headless, así que usan
+`method: scraper`, que enruta la petición por un servicio externo que resuelve el
+challenge y devuelve el HTML renderizado. Pasos:
+
+1. Crea una cuenta en un proveedor (cualquiera de estos sirve; todos tienen plan
+   gratuito que cubre de sobra ~6 peticiones/día):
+   - [ScraperAPI](https://www.scraperapi.com/) → `SCRAPER_PROVIDER=scraperapi`
+   - [ZenRows](https://www.zenrows.com/) → `SCRAPER_PROVIDER=zenrows`
+   - [ScrapingBee](https://www.scrapingbee.com/) → `SCRAPER_PROVIDER=scrapingbee`
+2. En `.env` (local) y/o en los *secrets* de GitHub, define:
+   ```
+   SCRAPER_PROVIDER=scraperapi
+   SCRAPER_API_KEY=tu_api_key
+   ```
+3. Para cualquier otro proveedor con API tipo GET, usa `SCRAPER_PROVIDER=custom` y
+   define `SCRAPER_BASE_URL`, `SCRAPER_PARAMS` (JSON), `SCRAPER_KEY_PARAM`,
+   `SCRAPER_URL_PARAM` (ver `.env.example`).
+
+> Si **no** configuras el servicio, esas dos tiendas quedan en `ERROR` (no rompen la
+> corrida) y el resto del monitor funciona normal. No hay falsos positivos.
 
 ### Corrida manual
 
@@ -122,6 +152,8 @@ El workflow `.github/workflows/check.yml` ya está incluido y corre a las
 1. En GitHub: **Settings → Secrets and variables → Actions → New repository secret** y crea:
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
+   - `SCRAPER_PROVIDER` y `SCRAPER_API_KEY` (opcionales; solo si quieres monitorear
+     LordGun/Abus, que están tras anti-bot)
 2. El workflow instala dependencias + Chromium, ejecuta `python -m src.checker` y hace
    **commit/push de `state.json`** de vuelta a la rama (por eso `state.json` **no** está
    en `.gitignore`): así el estado sobrevive entre corridas en runners efímeros.
@@ -174,6 +206,8 @@ requirements.txt
 |----------------------|-------------|-----------------------------------------------|
 | `TELEGRAM_BOT_TOKEN` | sí          | token del bot de Telegram                     |
 | `TELEGRAM_CHAT_ID`   | sí          | chat al que enviar los avisos                 |
+| `SCRAPER_PROVIDER`   | si hay `scraper` | `scraperapi` \| `zenrows` \| `scrapingbee` \| `custom` |
+| `SCRAPER_API_KEY`    | si hay `scraper` | API key del servicio de scraping          |
 | `STORES_CONFIG`      | no          | ruta del YAML (por defecto `config/stores.yaml`) |
 | `STATE_FILE`         | no          | ruta del estado (por defecto `state.json`)    |
 | `LOG_LEVEL`          | no          | `DEBUG` / `INFO` / `WARNING` (por defecto `INFO`) |

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .base import Detector
 from .playwright_store import PlaywrightDetector
+from .scraper_store import ScraperDetector
 from .shopify_store import ShopifyDetector
 from .static_store import StaticDetector
 
@@ -10,6 +11,7 @@ _DETECTORS: dict[str, type[Detector]] = {
     ShopifyDetector.method: ShopifyDetector,
     StaticDetector.method: StaticDetector,
     PlaywrightDetector.method: PlaywrightDetector,
+    ScraperDetector.method: ScraperDetector,
 }
 
 
