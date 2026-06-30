@@ -7,13 +7,15 @@ como dato estructurado y fiable -> cero falsos positivos.
 - URL de colección -> ``<url>/products.json``    (lista ``products``)
 
 Para catálogos colombianos (DSCBike, BiciMarket) que aún no listan el modelo,
-se apunta a la colección y se busca ``search_term`` (p. ej. "targon"); si no
-aparece -> NOT_LISTED.
+se apunta a la colección y se busca ``search_term`` (p. ej. "targon"). Si la
+colección no contiene el modelo, se hace un **fallback de búsqueda en toda la
+tienda** (``/search/suggest.json``) para detectar el producto en cualquier
+colección; si tampoco aparece -> NOT_LISTED.
 """
 from __future__ import annotations
 
 import logging
-import re
+from urllib.parse import urlparse
 
 import httpx
 
@@ -126,8 +128,70 @@ class ShopifyDetector(Detector):
         )
         if not match:
             logger.info(
-                "[%s] '%s' no aparece en la colección (%d productos).",
+                "[%s] '%s' no aparece en la colección (%d productos); "
+                "probando búsqueda en toda la tienda.",
                 store_key, search_term, len(products),
             )
+            if detect.get("fallback_search", True):
+                store_match = self._search_store(
+                    client, url, search_term, mips_required
+                )
+                if store_match is not None:
+                    logger.info(
+                        "[%s] encontrado vía búsqueda global: %s",
+                        store_key, store_match.get("title"),
+                    )
+                    return _evaluate_product(store_key, cfg, store_match)
             return make_result(store_key, cfg, Status.NOT_LISTED)
         return _evaluate_product(store_key, cfg, match)
+
+    def _search_store(self, client, url, search_term, mips_required) -> dict | None:
+        """Busca el modelo en toda la tienda vía la predictive search de Shopify.
+
+        Devuelve el objeto ``product`` completo (con variantes) listo para
+        ``_evaluate_product``, o None si no aparece en ninguna colección.
+        """
+        parsed = urlparse(url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        try:
+            resp = client.get(
+                f"{origin}/search/suggest.json",
+                params={
+                    "q": search_term,
+                    "resources[type]": "product",
+                    "resources[limit]": 10,
+                },
+            )
+            resp.raise_for_status()
+            results = (
+                resp.json()
+                .get("resources", {})
+                .get("results", {})
+                .get("products", [])
+            )
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.debug("búsqueda global falló (%s): %s", origin, exc)
+            return None
+
+        hit = next(
+            (p for p in results if _product_matches(p, search_term, mips_required)),
+            None,
+        )
+        if hit is None:
+            return None
+
+        # suggest.json no trae variantes; obtenemos el producto completo.
+        handle = hit.get("handle")
+        product_path = (hit.get("url") or "").split("?")[0]
+        product_url = (
+            f"{origin}/products/{handle}" if handle else f"{origin}{product_path}"
+        )
+        try:
+            pr = client.get(f"{product_url}.json")
+            pr.raise_for_status()
+            full = pr.json().get("product")
+            if full:
+                return full
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.debug("no se pudo leer %s.json: %s", product_url, exc)
+        return None

@@ -22,6 +22,9 @@
 #   add_to_cart_selector  -> (CSS) botón de añadir al carrito
 #   require_mips          -> true para exigir que la página mencione "mips"
 #   search_term           -> (catálogo) término a buscar en la colección
+#   fallback_search       -> (shopify) si el término no está en la colección,
+#                            buscar en TODA la tienda vía /search/suggest.json
+#                            (por defecto true)
 #   color                 -> color por defecto a registrar si la página no lo expone
 
 stores:
@@ -33,7 +36,9 @@ stores:
     url: https://www.lordgunbicycles.es/casco-abus-targon-mips
     method: playwright
     detect:
-      require_mips: true
+      # URL de producto directa: no aplicamos el filtro NOT_LISTED de catálogo
+      # (require_mips). El detector loguea título/URL final para diagnóstico.
+      require_mips: false
       size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium", " M "]
       size_selector: "select[name*='attribute'] option, .product-variants option, [data-attribute] li"
       add_to_cart_selector: "button#add-to-cart, button[name='add'], .add-to-cart"
