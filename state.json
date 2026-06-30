@@ -4,13 +4,15 @@
       "checked_at": "2026-06-30T13:32:40+00:00",
       "color": null,
       "currency": "USD",
+      "last_checked": "2026-06-30T19:32:27+00:00",
+      "last_error": "bloqueo anti-bot (título='Access Denied')",
       "price": null,
       "size": "M",
       "status": "OUT_OF_STOCK",
       "url": "https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US"
     },
     "all4cycling": {
-      "checked_at": "2026-06-30T13:32:35+00:00",
+      "checked_at": "2026-06-30T19:32:01+00:00",
       "color": null,
       "currency": "EUR",
       "price": null,
@@ -19,7 +21,7 @@
       "url": "https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero"
     },
     "bicimarket": {
-      "checked_at": "2026-06-30T13:32:41+00:00",
+      "checked_at": "2026-06-30T19:32:28+00:00",
       "color": null,
       "currency": "COP",
       "price": null,
@@ -28,7 +30,7 @@
       "url": "https://bicimarket.com.co/collections/abus"
     },
     "dscbike": {
-      "checked_at": "2026-06-30T13:32:40+00:00",
+      "checked_at": "2026-06-30T19:32:28+00:00",
       "color": null,
       "currency": "COP",
       "price": null,
@@ -40,6 +42,8 @@
       "checked_at": "2026-06-30T13:32:22+00:00",
       "color": null,
       "currency": "EUR",
+      "last_checked": "2026-06-30T19:31:49+00:00",
+      "last_error": "bloqueo anti-bot (título='Un momento…')",
       "price": null,
       "size": "M",
       "status": "OUT_OF_STOCK",
