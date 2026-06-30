@@ -16,6 +16,22 @@ USER_AGENT = (
 
 DEFAULT_TIMEOUT = 30  # segundos
 
+# Señales de pantallas anti-bot / challenge (Cloudflare, Akamai, etc.).
+# Si la página es una de éstas, NO pudimos leer el producto: hay que tratarlo
+# como ERROR (lectura no fiable), nunca como AGOTADO (evita falsos negativos).
+ANTIBOT_KEYWORDS = [
+    "un momento…", "un momento...", "just a moment", "checking your browser",
+    "verifying you are human", "verify you are human", "attention required",
+    "access denied", "acceso denegado", "cloudflare", "ddos protection",
+    "enable javascript and cookies", "/cdn-cgi/", "ray id",
+]
+
+
+def is_antibot(*texts: str) -> bool:
+    """True si algún texto (título, cuerpo) parece una pantalla anti-bot."""
+    blob = " ".join(t for t in texts if t).lower()
+    return any(kw in blob for kw in ANTIBOT_KEYWORDS)
+
 
 class Detector:
     """Contrato común. Cada método de detección implementa ``check``."""
