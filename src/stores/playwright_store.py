@@ -54,15 +54,21 @@ class PlaywrightDetector(Detector):
         size_keywords = detect.get("size_keywords", ["M", "55", "55-58", "medium"])
         wait_ms = int(detect.get("wait_ms", 4000))
         # Segundos máximos a esperar a que un challenge (Cloudflare) se resuelva.
-        challenge_wait_ms = int(detect.get("challenge_wait_ms", 20000))
+        challenge_wait_ms = int(detect.get("challenge_wait_ms", 35000))
 
         with sync_playwright() as pw:
+            # "--headless=new" usa el headless moderno de Chrome (mucho menos
+            # detectable por Cloudflare que el headless-shell clásico) sin
+            # necesitar display: por eso headless=False + el flag.
             browser = pw.chromium.launch(
-                headless=True,
+                headless=False,
                 args=[
+                    "--headless=new",
                     "--disable-blink-features=AutomationControlled",
                     "--no-sandbox",
                     "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--window-size=1366,900",
                 ],
             )
             try:
@@ -76,6 +82,10 @@ class PlaywrightDetector(Detector):
                             "accept_language", "es-ES,es;q=0.9,en;q=0.8"
                         ),
                         "Upgrade-Insecure-Requests": "1",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
                     },
                 )
                 # Enmascarar señales típicas de automatización antes de cargar.
@@ -86,6 +96,9 @@ class PlaywrightDetector(Detector):
                     "{get:()=>['es-ES','es','en']});"
                     "Object.defineProperty(navigator,'plugins',"
                     "{get:()=>[1,2,3,4,5]});"
+                    "Object.defineProperty(navigator,'hardwareConcurrency',"
+                    "{get:()=>8});"
+                    "Object.defineProperty(navigator,'deviceMemory',{get:()=>8});"
                 )
                 page = context.new_page()
                 page.goto(url, wait_until="domcontentloaded", timeout=45000)
@@ -144,6 +157,7 @@ class PlaywrightDetector(Detector):
         """
         waited = 0
         step = 1500
+        reloaded = False
         while waited < max_ms:
             try:
                 title = page.title() or ""
@@ -152,6 +166,14 @@ class PlaywrightDetector(Detector):
                 title, body = "", ""
             if not is_antibot(title, body):
                 return
+            # A mitad de la espera, recargar una vez: Cloudflare suele dejar
+            # pasar tras fijar la cookie cf_clearance en una segunda carga.
+            if not reloaded and waited >= max_ms // 2:
+                reloaded = True
+                try:
+                    page.reload(wait_until="domcontentloaded", timeout=30000)
+                except Exception:  # noqa: BLE001
+                    pass
             page.wait_for_timeout(step)
             waited += step
 
