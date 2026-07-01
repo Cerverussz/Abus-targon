@@ -4,7 +4,7 @@
       "checked_at": "2026-06-30T13:32:40+00:00",
       "color": null,
       "currency": "USD",
-      "last_checked": "2026-07-01T01:42:14+00:00",
+      "last_checked": "2026-07-01T13:45:33+00:00",
       "last_error": "Falta SCRAPER_API_KEY en el entorno (.env / secret de GitHub).",
       "price": null,
       "size": "M",
@@ -12,7 +12,7 @@
       "url": "https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US"
     },
     "all4cycling": {
-      "checked_at": "2026-07-01T01:42:14+00:00",
+      "checked_at": "2026-07-01T13:45:33+00:00",
       "color": null,
       "currency": "EUR",
       "price": null,
@@ -21,7 +21,7 @@
       "url": "https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero"
     },
     "bicimarket": {
-      "checked_at": "2026-07-01T01:42:15+00:00",
+      "checked_at": "2026-07-01T13:45:34+00:00",
       "color": null,
       "currency": "COP",
       "price": null,
@@ -30,7 +30,7 @@
       "url": "https://bicimarket.com.co/collections/abus"
     },
     "dscbike": {
-      "checked_at": "2026-07-01T01:42:14+00:00",
+      "checked_at": "2026-07-01T13:45:33+00:00",
       "color": null,
       "currency": "COP",
       "price": null,
@@ -42,7 +42,7 @@
       "checked_at": "2026-06-30T13:32:22+00:00",
       "color": null,
       "currency": "EUR",
-      "last_checked": "2026-07-01T01:42:02+00:00",
+      "last_checked": "2026-07-01T13:45:20+00:00",
       "last_error": "Falta SCRAPER_API_KEY en el entorno (.env / secret de GitHub).",
       "price": null,
       "size": "M",
