@@ -4,15 +4,15 @@
       "checked_at": "2026-06-30T13:32:40+00:00",
       "color": null,
       "currency": "USD",
-      "last_checked": "2026-07-02T15:02:29+00:00",
-      "last_error": "Falta SCRAPER_API_KEY en el entorno (.env / secret de GitHub).",
+      "last_checked": "2026-07-02T16:48:36+00:00",
+      "last_error": "Server error '500 Internal Server Error' for url 'https://api.scraperapi.com/?api_key=b12319aa4a2df19dd0a8441dd2e3dcf2&url=https%3A%2F%2Fwww.abus.com%2Fusa%2FProducts%2FBike-helmets%2FNew-products%2FTargon-MIPS-US&render=true&country_code=us'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500",
       "price": null,
       "size": "M",
       "status": "OUT_OF_STOCK",
       "url": "https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US"
     },
     "all4cycling": {
-      "checked_at": "2026-07-02T15:02:29+00:00",
+      "checked_at": "2026-07-02T16:47:40+00:00",
       "color": null,
       "currency": "EUR",
       "price": null,
@@ -21,7 +21,7 @@
       "url": "https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero"
     },
     "bicimarket": {
-      "checked_at": "2026-07-02T15:02:30+00:00",
+      "checked_at": "2026-07-02T16:48:36+00:00",
       "color": null,
       "currency": "COP",
       "price": null,
@@ -30,7 +30,7 @@
       "url": "https://bicimarket.com.co/collections/abus"
     },
     "dscbike": {
-      "checked_at": "2026-07-02T15:02:30+00:00",
+      "checked_at": "2026-07-02T16:48:36+00:00",
       "color": null,
       "currency": "COP",
       "price": null,
@@ -42,8 +42,8 @@
       "checked_at": "2026-06-30T13:32:22+00:00",
       "color": null,
       "currency": "EUR",
-      "last_checked": "2026-07-02T15:02:17+00:00",
-      "last_error": "Falta SCRAPER_API_KEY en el entorno (.env / secret de GitHub).",
+      "last_checked": "2026-07-02T16:47:29+00:00",
+      "last_error": "Server error '500 Internal Server Error' for url 'https://api.scraperapi.com/?api_key=b12319aa4a2df19dd0a8441dd2e3dcf2&url=https%3A%2F%2Fwww.lordgunbicycles.es%2Fcasco-abus-targon-mips&render=true&country_code=es'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500",
       "price": null,
       "size": "M",
       "status": "OUT_OF_STOCK",
