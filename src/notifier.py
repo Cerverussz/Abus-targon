@@ -47,7 +47,18 @@ def send(text: str) -> None:
         },
         timeout=20,
     )
-    resp.raise_for_status()
+    if resp.status_code != 200:
+        # Telegram devuelve el motivo exacto en el cuerpo JSON ("description");
+        # lo exponemos para diagnosticar (chat sin iniciar, chat_id erróneo...).
+        description = ""
+        try:
+            description = resp.json().get("description", "")
+        except Exception:  # noqa: BLE001
+            description = (resp.text or "")[:200]
+        raise RuntimeError(
+            f"Telegram respondió {resp.status_code}: {description} "
+            f"(chat_id={chat_id!r})"
+        )
     logger.info("Telegram: mensaje enviado.")
 
 
