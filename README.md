@@ -102,6 +102,13 @@ challenge y devuelve el HTML renderizado. Pasos:
 > Si **no** configuras el servicio, esas dos tiendas quedan en `ERROR` (no rompen la
 > corrida) y el resto del monitor funciona normal. No hay falsos positivos.
 
+**Recordatorio de revisión manual.** LordGun y Abus llevan `manual_fallback: true`:
+si el scraper **no logra verificarlas** (quedan en `ERROR`), el monitor te manda un
+recordatorio por Telegram tras la corrida para que revises la disponibilidad de la M a
+mano (con el link directo). Se envía un único mensaje consolidado por corrida, y solo
+mientras esas tiendas no se puedan leer solas; si el scraper empieza a funcionar, el
+recordatorio deja de enviarse y vuelve el aviso automático de disponibilidad.
+
 **Modo reforzado (`scraper_hard`).** LordGun (Cloudflare) y Abus (Akamai) tienen anti-bot
 duro; en `stores.yaml` llevan `scraper_hard: true`, que activa el modo premium del
 proveedor (ScraperAPI `ultra_premium`, ZenRows/ScrapingBee `premium_proxy`). **Consume

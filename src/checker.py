@@ -15,7 +15,7 @@ import yaml
 from dotenv import load_dotenv
 
 from .models import CheckResult, Status
-from .notifier import notify
+from .notifier import notify, notify_manual
 from .state import (
     DEFAULT_STATE_FILE,
     Notification,
@@ -80,6 +80,9 @@ def run() -> int:
 
     results: list[CheckResult] = []
     notifications: list[Notification] = []
+    # Tiendas con manual_fallback que no se pudieron verificar esta corrida:
+    # se recuerda revisarlas a mano por Telegram.
+    manual_pending: list[CheckResult] = []
 
     logger.info("=== Corrida Targon Watch: %d tiendas ===", len(stores))
     for store_key, cfg in stores.items():
@@ -88,6 +91,9 @@ def run() -> int:
             continue
         result = check_store(store_key, cfg)
         results.append(result)
+
+        if cfg.get("manual_fallback") and result.status == Status.ERROR:
+            manual_pending.append(result)
 
         notif = diff(state, result)
         if notif:
@@ -106,6 +112,15 @@ def run() -> int:
                 "[%s] no se pudo enviar la notificación: %s",
                 notif.result.store_key, exc,
             )
+
+    # Recordatorio de revisión manual (LordGun/Abus cuando el scraper no pudo).
+    if manual_pending:
+        keys = ", ".join(r.store_key for r in manual_pending)
+        try:
+            notify_manual(manual_pending)
+            logger.info("Recordatorio de revisión manual enviado: %s", keys)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("No se pudo enviar el recordatorio manual (%s): %s", keys, exc)
 
     save_state(state)
 
