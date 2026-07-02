@@ -102,6 +102,13 @@ challenge y devuelve el HTML renderizado. Pasos:
 > Si **no** configuras el servicio, esas dos tiendas quedan en `ERROR` (no rompen la
 > corrida) y el resto del monitor funciona normal. No hay falsos positivos.
 
+**Modo reforzado (`scraper_hard`).** LordGun (Cloudflare) y Abus (Akamai) tienen anti-bot
+duro; en `stores.yaml` llevan `scraper_hard: true`, que activa el modo premium del
+proveedor (ScraperAPI `ultra_premium`, ZenRows/ScrapingBee `premium_proxy`). **Consume
+más créditos por petición** (p. ej. ScraperAPI cobra ~10–30 créditos en vez de 1), así
+que revisa el plan de tu proveedor. Con 3 corridas/día son ~6 peticiones duras diarias.
+El detector reintenta ante errores 5xx/429 y registra el cuerpo del error para diagnóstico.
+
 ### Corrida manual
 
 ```bash

@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 
 import httpx
 from bs4 import BeautifulSoup
@@ -26,10 +27,17 @@ logger = logging.getLogger(__name__)
 
 # El render remoto puede tardar; damos margen amplio (solo 3 corridas/día).
 SCRAPER_TIMEOUT = int(os.getenv("SCRAPER_TIMEOUT", "90"))
+SCRAPER_RETRIES = int(os.getenv("SCRAPER_RETRIES", "2"))
 
 
 def _build_request(target_url: str, detect: dict) -> tuple[str, dict]:
-    """Construye (base_url, params) según el proveedor configurado en el entorno."""
+    """Construye (base_url, params) según el proveedor configurado en el entorno.
+
+    ``scraper_hard`` (detect) activa el modo reforzado del proveedor, necesario
+    para anti-bot duro (Cloudflare/Akamai). Cuesta más créditos, por eso es
+    opt-in por tienda. ``scraper_params`` permite añadir/forzar parámetros
+    arbitrarios (escape hatch, agnóstico de proveedor).
+    """
     key = os.getenv("SCRAPER_API_KEY")
     if not key:
         raise RuntimeError(
@@ -37,41 +45,83 @@ def _build_request(target_url: str, detect: dict) -> tuple[str, dict]:
         )
     provider = (os.getenv("SCRAPER_PROVIDER") or "scraperapi").lower()
     country = detect.get("scraper_country")
+    hard = bool(detect.get("scraper_hard", False))
 
     if provider == "scraperapi":
+        base = "https://api.scraperapi.com/"
         params = {"api_key": key, "url": target_url, "render": "true"}
         if country:
             params["country_code"] = country
-        return "https://api.scraperapi.com/", params
+        if hard:
+            params["ultra_premium"] = "true"  # anti-bot reforzado de ScraperAPI
 
-    if provider == "zenrows":
+    elif provider == "zenrows":
+        base = "https://api.zenrows.com/v1/"
         params = {
             "apikey": key, "url": target_url,
             "js_render": "true", "antibot": "true",
         }
         if country:
             params["proxy_country"] = country
-        return "https://api.zenrows.com/v1/", params
+        if hard:
+            params["premium_proxy"] = "true"
 
-    if provider == "scrapingbee":
+    elif provider == "scrapingbee":
+        base = "https://app.scrapingbee.com/api/v1/"
         params = {
             "api_key": key, "url": target_url,
             "render_js": "true", "stealth_proxy": "true",
         }
         if country:
             params["country_code"] = country
-        return "https://app.scrapingbee.com/api/v1/", params
+        if hard:
+            params["premium_proxy"] = "true"
 
-    if provider == "custom":
+    elif provider == "custom":
         base = os.getenv("SCRAPER_BASE_URL")
         if not base:
             raise RuntimeError("SCRAPER_PROVIDER=custom requiere SCRAPER_BASE_URL.")
         params = json.loads(os.getenv("SCRAPER_PARAMS") or "{}")
         params[os.getenv("SCRAPER_URL_PARAM", "url")] = target_url
         params[os.getenv("SCRAPER_KEY_PARAM", "api_key")] = key
-        return base, params
 
-    raise RuntimeError(f"SCRAPER_PROVIDER desconocido: {provider!r}.")
+    else:
+        raise RuntimeError(f"SCRAPER_PROVIDER desconocido: {provider!r}.")
+
+    # Escape hatch: parámetros extra desde el config (fuerzan/añaden lo anterior).
+    for k, v in (detect.get("scraper_params") or {}).items():
+        params[k] = str(v)
+    return base, params
+
+
+def _fetch_html(store_key: str, base: str, params: dict) -> str:
+    """GET al proveedor con reintentos ante 5xx/errores de red; loguea el cuerpo."""
+    last_exc: Exception | None = None
+    with httpx.Client(timeout=SCRAPER_TIMEOUT, follow_redirects=True) as client:
+        for attempt in range(1, SCRAPER_RETRIES + 2):
+            try:
+                resp = client.get(base, params=params)
+                resp.raise_for_status()
+                return resp.text
+            except httpx.HTTPStatusError as exc:
+                code = exc.response.status_code
+                body = (exc.response.text or "").strip().replace("\n", " ")[:200]
+                logger.warning(
+                    "[%s] scraper HTTP %s (intento %d/%d): %s",
+                    store_key, code, attempt, SCRAPER_RETRIES + 1, body,
+                )
+                last_exc = exc
+                if code < 500 and code != 429:
+                    break  # 4xx (salvo 429) = config/credenciales: no reintentar
+            except httpx.HTTPError as exc:
+                logger.warning(
+                    "[%s] scraper error de red (intento %d/%d): %s",
+                    store_key, attempt, SCRAPER_RETRIES + 1, exc,
+                )
+                last_exc = exc
+            if attempt <= SCRAPER_RETRIES:
+                time.sleep(2 * attempt)
+    raise last_exc if last_exc else RuntimeError("fallo desconocido del scraper")
 
 
 class ScraperDetector(Detector):
@@ -80,11 +130,7 @@ class ScraperDetector(Detector):
     def check(self, store_key: str, cfg: dict) -> CheckResult:
         detect = cfg.get("detect", {})
         base, params = _build_request(cfg["url"], detect)
-
-        with httpx.Client(timeout=SCRAPER_TIMEOUT, follow_redirects=True) as client:
-            resp = client.get(base, params=params)
-            resp.raise_for_status()
-            html = resp.text
+        html = _fetch_html(store_key, base, params)
 
         soup = BeautifulSoup(html, "html.parser")
         page_text = soup.get_text(" ", strip=True)
