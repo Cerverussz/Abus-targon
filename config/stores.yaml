@@ -12,6 +12,9 @@
 #                (scraper = vía servicio externo que resuelve Cloudflare/Akamai;
 #                 requiere SCRAPER_API_KEY y SCRAPER_PROVIDER en el entorno)
 #   enabled   -> (opcional) false para desactivar sin borrar
+#   manual_fallback -> (opcional) si la tienda queda en ERROR (p. ej. anti-bot
+#                      que el scraper no supera), manda un recordatorio a
+#                      Telegram para revisar la disponibilidad a mano
 #   detect:   -> keywords/selectores de detección (ver ejemplos)
 #
 # Keywords de detección (detect):
@@ -44,6 +47,9 @@ stores:
     # Cloudflare bloquea al headless: se enruta por servicio de scraping
     # (SCRAPER_API_KEY/SCRAPER_PROVIDER en el entorno).
     method: scraper
+    # Si el scraper no logra verificarla (ERROR), avisa por Telegram para
+    # revisar la disponibilidad a mano.
+    manual_fallback: true
     detect:
       require_mips: false
       scraper_country: es
@@ -77,6 +83,7 @@ stores:
     url: https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US
     # Akamai "Access Denied" bloquea al headless: se enruta por scraping.
     method: scraper
+    manual_fallback: true  # recordatorio de revisión manual si el scraper falla
     detect:
       require_mips: true
       scraper_country: us

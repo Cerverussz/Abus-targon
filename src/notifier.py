@@ -93,6 +93,29 @@ def notify(notif: Notification) -> None:
     send(format_notification(notif))
 
 
+def format_manual_reminder(results) -> str:
+    """Mensaje-recordatorio para tiendas que no se pudieron verificar solas."""
+    lines = [
+        "🔎 <b>Revisión manual — Abus Targon MIPS (talla M)</b>",
+        "",
+        "El monitor <b>no pudo verificar</b> estas tiendas automáticamente "
+        "(anti-bot). Revisa a mano si hay disponibilidad de la M (55–58 cm):",
+        "",
+    ]
+    for r in results:
+        lines.append(
+            f'• <a href="{html.escape(r.url, quote=True)}">'
+            f"{html.escape(r.store_name)}</a> ({html.escape(r.country)})"
+        )
+    return "\n".join(lines)
+
+
+def notify_manual(results) -> None:
+    """Envía un único recordatorio consolidado de revisión manual."""
+    if results:
+        send(format_manual_reminder(results))
+
+
 def _test() -> int:
     """Modo prueba: valida credenciales enviando un mensaje de comprobación."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
