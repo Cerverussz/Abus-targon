@@ -34,7 +34,8 @@ Cada tienda declara su `method` en `stores.yaml`:
 | `shopify`    | tiendas Shopify (DSCBike, BiciMarket)              | `variant.available` del JSON de Shopify (dato estructurado, fiable) |
 | `static`     | páginas estáticas (HTML servido tal cual)          | `httpx` + BeautifulSoup + keywords/selectores |
 | `playwright` | sitios con JS sin anti-bot (All4cycling)           | Chromium headless: la M debe ser seleccionable y el carrito habilitado |
-| `scraper`    | sitios con anti-bot (LordGun/Cloudflare, Abus/Akamai) | servicio externo renderiza y resuelve el challenge; se parsea el HTML con keywords/selectores |
+| `scraper`    | sitios con anti-bot, con servicio de scraping de pago | servicio externo renderiza y resuelve el challenge; se parsea el HTML con keywords/selectores |
+| `manual`     | sitios con anti-bot que no se pueden verificar (LordGun, Abus) | no llama a la red; con `manual_fallback` avisa por Telegram para revisar a mano |
 
 Las tiendas colombianas usan `shopify` apuntando a la colección `/collections/abus`:
 se busca el término `targon`; si no aparece, se busca en toda la tienda
@@ -43,8 +44,10 @@ cuándo el modelo aterriza en Colombia).
 
 Si un sitio bloquea al navegador (Cloudflare "Un momento…", Akamai "Access Denied"),
 el detector **no inventa un estado**: devuelve `ERROR` (no "agotado"), para no perder
-una eventual disponibilidad. El método `scraper` enruta esos sitios por un servicio
-externo que sí supera el bloqueo (ver abajo).
+una eventual disponibilidad. **LordGun y Abus** usan por defecto `method: manual`
+(no se pueden verificar en automático sin un servicio de scraping de pago): quedan
+como recordatorio por Telegram para revisarlas a mano. Si contratas un servicio con
+proxies premium, puedes volverlas a `method: scraper` (ver abajo).
 
 ---
 

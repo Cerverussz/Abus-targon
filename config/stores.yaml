@@ -8,9 +8,11 @@
 #   country   -> país (texto libre)
 #   currency  -> moneda para mostrar el precio (EUR, USD, COP, ...)
 #   url       -> URL del producto (o de la colección, para catálogos Shopify)
-#   method    -> shopify | static | playwright | scraper
+#   method    -> shopify | static | playwright | scraper | manual
 #                (scraper = vía servicio externo que resuelve Cloudflare/Akamai;
 #                 requiere SCRAPER_API_KEY y SCRAPER_PROVIDER en el entorno)
+#                (manual = no se verifica sola; con manual_fallback avisa por
+#                 Telegram para revisarla a mano, sin gastar llamadas)
 #   enabled   -> (opcional) false para desactivar sin borrar
 #   manual_fallback -> (opcional) si la tienda queda en ERROR (p. ej. anti-bot
 #                      que el scraper no supera), manda un recordatorio a
@@ -44,22 +46,12 @@ stores:
     country: España
     currency: EUR
     url: https://www.lordgunbicycles.es/casco-abus-targon-mips
-    # Cloudflare bloquea al headless: se enruta por servicio de scraping
-    # (SCRAPER_API_KEY/SCRAPER_PROVIDER en el entorno).
-    method: scraper
-    # Si el scraper no logra verificarla (ERROR), avisa por Telegram para
-    # revisar la disponibilidad a mano.
+    # Cloudflare bloquea al headless y el plan free del scraper no lo supera:
+    # method "manual" -> no gasta llamadas y dispara recordatorio a Telegram.
+    # (Para volver al scraping automático: method: scraper + plan con proxies
+    #  premium; el bloque detect de scraper quedó documentado en el historial.)
+    method: manual
     manual_fallback: true
-    detect:
-      require_mips: false
-      scraper_country: es
-      scraper_hard: true   # Cloudflare duro: modo reforzado del proveedor
-      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium", " M "]
-      size_selector: "select[name*='attribute'] option, .product-variants option, [data-attribute] li"
-      add_to_cart_selector: "button#add-to-cart, button[name='add'], .add-to-cart"
-      price_selector: ".current-price, .product-price, [itemprop='price']"
-      available_keywords: ["en stock", "disponible", "añadir al carrito", "agregar al carrito"]
-      unavailable_keywords: ["agotado", "sin stock", "out of stock", "no disponible", "avísame", "notify me"]
 
   all4cycling:
     name: All4cycling
@@ -81,19 +73,10 @@ stores:
     country: USA
     currency: USD
     url: https://www.abus.com/usa/Products/Bike-helmets/New-products/Targon-MIPS-US
-    # Akamai "Access Denied" bloquea al headless: se enruta por scraping.
-    method: scraper
-    manual_fallback: true  # recordatorio de revisión manual si el scraper falla
-    detect:
-      require_mips: true
-      scraper_country: us
-      scraper_hard: true   # Akamai duro: modo reforzado del proveedor
-      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
-      size_selector: "select option, .variant option, [data-size] li, .size-selector li"
-      add_to_cart_selector: "button.add-to-cart, button[name='add'], .btn-buy"
-      price_selector: ".price, [itemprop='price'], .product-price"
-      available_keywords: ["in stock", "add to cart", "buy now"]
-      unavailable_keywords: ["out of stock", "sold out", "backorder", "backordered", "notify me", "coming soon"]
+    # Akamai "Access Denied" bloquea al headless y el plan free del scraper no
+    # lo supera: method "manual" -> recordatorio a Telegram, sin gastar llamadas.
+    method: manual
+    manual_fallback: true
 
   dscbike:
     name: DSCBike
