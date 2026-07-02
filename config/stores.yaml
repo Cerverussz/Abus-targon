@@ -28,6 +28,10 @@
 #                            buscar en TODA la tienda vía /search/suggest.json
 #                            (por defecto true)
 #   scraper_country       -> (scraper) código de país para el proxy (es, us...)
+#   scraper_hard          -> (scraper) modo anti-bot reforzado del proveedor
+#                            (ScraperAPI ultra_premium, etc.); necesario para
+#                            Cloudflare/Akamai duros. Cuesta más créditos.
+#   scraper_params        -> (scraper) dict de parámetros extra para el proveedor
 #   color                 -> color por defecto a registrar si la página no lo expone
 
 stores:
@@ -43,6 +47,7 @@ stores:
     detect:
       require_mips: false
       scraper_country: es
+      scraper_hard: true   # Cloudflare duro: modo reforzado del proveedor
       size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium", " M "]
       size_selector: "select[name*='attribute'] option, .product-variants option, [data-attribute] li"
       add_to_cart_selector: "button#add-to-cart, button[name='add'], .add-to-cart"
@@ -75,6 +80,7 @@ stores:
     detect:
       require_mips: true
       scraper_country: us
+      scraper_hard: true   # Akamai duro: modo reforzado del proveedor
       size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
       size_selector: "select option, .variant option, [data-size] li, .size-selector li"
       add_to_cart_selector: "button.add-to-cart, button[name='add'], .btn-buy"
