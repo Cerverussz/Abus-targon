@@ -4,7 +4,12 @@ on:
   schedule:
     # 13:00, 19:00 y 01:00 UTC  (≈ 8:00 a.m., 2:00 p.m. y 8:00 p.m. hora Colombia)
     - cron: "0 13,19,1 * * *"
-  workflow_dispatch: {}  # permite lanzar una corrida manual desde la pestaña Actions
+  workflow_dispatch:      # permite lanzar una corrida manual desde la pestaña Actions
+    inputs:
+      preview:
+        description: "Enviar un mensaje de EJEMPLO de disponibilidad a Telegram (no revisa tiendas)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # necesario para commitear state.json de vuelta a la rama
@@ -42,7 +47,12 @@ jobs:
           # el secret, esas tiendas quedan en ERROR y el resto sigue igual.
           SCRAPER_PROVIDER: ${{ secrets.SCRAPER_PROVIDER }}
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
-        run: python -m src.checker
+        run: |
+          if [ "${{ inputs.preview }}" = "true" ]; then
+            python -m src.notifier --preview
+          else
+            python -m src.checker
+          fi
 
       - name: Persist state.json
         run: |

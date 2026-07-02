@@ -142,11 +142,37 @@ def _test() -> int:
     return 0
 
 
+def _preview() -> int:
+    """Envía un mensaje de EJEMPLO de disponibilidad, igual al de un aviso real."""
+    from .models import CheckResult, Status
+    from .state import Notification
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    sample = CheckResult(
+        store_key="all4cycling", store_name="All4cycling", country="Italia",
+        status=Status.AVAILABLE,
+        url="https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero",
+        price=189.9, currency="EUR", color="Negro",
+    )
+    try:
+        send(
+            "🧪 <b>EJEMPLO</b> (así se verá un aviso real):\n\n"
+            + format_notification(Notification(result=sample, reason="available"))
+        )
+    except Exception as exc:  # noqa: BLE001 - feedback directo al usuario
+        logger.error("Falló el envío del ejemplo: %s", exc)
+        return 1
+    print("OK: mensaje de ejemplo enviado a Telegram.")
+    return 0
+
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
 
     load_dotenv()
     if "--test" in sys.argv:
         sys.exit(_test())
-    print("Uso: python -m src.notifier --test")
+    if "--preview" in sys.argv:
+        sys.exit(_preview())
+    print("Uso: python -m src.notifier [--test | --preview]")
     sys.exit(2)
