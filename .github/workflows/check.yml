@@ -46,12 +46,30 @@ jobs:
 
       - name: Persist state.json
         run: |
-          if [ -n "$(git status --porcelain state.json)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -z "$(git status --porcelain state.json)" ]; then
+            echo "Sin cambios en state.json; nada que commitear."
+            exit 0
+          fi
+          # Reaplicar el state.json recién calculado sobre la punta actual de
+          # main, para no fallar si main avanzó (re-runs, corridas solapadas).
+          cp state.json /tmp/state.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout -B main origin/main
+            cp /tmp/state.json state.json
+            if [ -z "$(git status --porcelain state.json)" ]; then
+              echo "state.json ya está al día en main."
+              exit 0
+            fi
             git add state.json
             git commit -m "chore: update stock state [skip ci]"
-            git push
-          else
-            echo "Sin cambios en state.json; nada que commitear."
-          fi
+            if git push origin main; then
+              echo "state.json publicado."
+              exit 0
+            fi
+            echo "push rechazado (intento $attempt); reintentando sobre main actualizado."
+          done
+          echo "No se pudo publicar state.json tras varios intentos." >&2
+          exit 1
