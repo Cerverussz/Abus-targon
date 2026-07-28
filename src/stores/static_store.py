@@ -13,8 +13,10 @@ from .base import (
     USER_AGENT,
     Detector,
     classify_text,
+    has_state_signal,
+    is_unreadable,
     make_result,
-    text_has_any,
+    size_matches,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,10 +53,17 @@ def _scope_text(soup: BeautifulSoup, detect: dict) -> str:
     if size_selector:
         nodes = soup.select(size_selector)
         for node in nodes:
-            if text_has_any(node.get_text(" ", strip=True), size_keywords):
-                # Texto del nodo + su contenedor cercano para captar el estado.
-                parent = node.find_parent() or node
-                return parent.get_text(" ", strip=True)
+            own_text = node.get_text(" ", strip=True)
+            if not size_matches(own_text, size_keywords):
+                continue
+            # Si el propio nodo de la talla ya dice el estado, quedarse ahí:
+            # subir al padre arrastra el estado de las demás tallas y un
+            # "Agotado" de la S haría pasar por agotada una M disponible.
+            if has_state_signal(own_text, detect):
+                return own_text
+            # Si no, el estado suele estar en el contenedor cercano.
+            parent = node.find_parent() or node
+            return parent.get_text(" ", strip=True)
     return soup.get_text(" ", strip=True)
 
 
@@ -78,6 +87,15 @@ class StaticDetector(Detector):
         # ¿El producto aparece siquiera? (defensa contra 404 suaves).
         size_keywords = detect.get("size_keywords", ["M", "55", "55-58", "medium"])
         page_text = soup.get_text(" ", strip=True)
+
+        # Página en blanco / sin renderizar: no leímos nada, así que ERROR
+        # honesto en vez de inventar NO LISTADO o AGOTADO.
+        if is_unreadable(page_text):
+            return make_result(
+                store_key, cfg, Status.ERROR,
+                error=f"página sin contenido legible ({len(page_text)} chars)",
+            )
+
         if detect.get("require_mips", False) and "mips" not in page_text.lower():
             return make_result(store_key, cfg, Status.NOT_LISTED)
 

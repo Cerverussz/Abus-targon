@@ -34,8 +34,8 @@ Cada tienda declara su `method` en `stores.yaml`:
 | `shopify`    | tiendas Shopify (DSCBike, BiciMarket)              | `variant.available` del JSON de Shopify (dato estructurado, fiable) |
 | `static`     | páginas estáticas (HTML servido tal cual)          | `httpx` + BeautifulSoup + keywords/selectores |
 | `playwright` | sitios con JS sin anti-bot (All4cycling)           | Chromium headless: la M debe ser seleccionable y el carrito habilitado |
-| `scraper`    | sitios con anti-bot, con servicio de scraping de pago | servicio externo renderiza y resuelve el challenge; se parsea el HTML con keywords/selectores |
-| `manual`     | sitios con anti-bot que no se pueden verificar (LordGun, Abus) | no llama a la red; con `manual_fallback` avisa por Telegram para revisar a mano |
+| `scraper`    | sitios con anti-bot (LordGun/Cloudflare)           | servicio externo renderiza y resuelve el challenge; se parsea el HTML con keywords/selectores |
+| `manual`     | sitios con anti-bot que no se pueden verificar (Abus oficial US) | no llama a la red; con `manual_fallback` avisa por Telegram para revisar a mano |
 
 Las tiendas colombianas usan `shopify` apuntando a la colección `/collections/abus`:
 se busca el término `targon`; si no aparece, se busca en toda la tienda
@@ -44,10 +44,27 @@ cuándo el modelo aterriza en Colombia).
 
 Si un sitio bloquea al navegador (Cloudflare "Un momento…", Akamai "Access Denied"),
 el detector **no inventa un estado**: devuelve `ERROR` (no "agotado"), para no perder
-una eventual disponibilidad. **LordGun y Abus** usan por defecto `method: manual`
-(no se pueden verificar en automático sin un servicio de scraping de pago): quedan
-como recordatorio por Telegram para revisarlas a mano. Si contratas un servicio con
-proxies premium, puedes volverlas a `method: scraper` (ver abajo).
+una eventual disponibilidad. Lo mismo si la página llega **vacía o sin renderizar**
+(menos de 200 caracteres de texto): eso es `ERROR`, no "no listado" — de lo contrario
+una página que no cargó se registraría como si hubiéramos comprobado que el modelo no
+está.
+
+**LordGun** va por `method: scraper` (Cloudflare) y **Abus oficial US** por
+`method: manual` (Akamai; el plan del scraper no lo supera). Ambas llevan
+`manual_fallback: true`, así que si no se pueden leer solas te llega el recordatorio
+por Telegram para revisarlas a mano.
+
+### Cómo se localiza la talla M
+
+Las keywords de talla de una sola letra (`M`) se buscan **como palabra completa**, no
+como subcadena: la 'm' aparece dentro de `Small`, `Medium` y `55-58 cm`, así que
+buscarla como subcadena hacía que cualquier talla pasara por M — y una S disponible
+se habría anunciado como "M disponible". Las keywords largas (`55-58`, `Medium`)
+siguen buscándose como subcadena.
+
+Cuando el nodo de la talla ya trae su propio estado ("M (55-58) — Agotado"), se
+clasifica **solo ese nodo**: mirar el contenedor entero mezclaría el estado de las
+demás tallas.
 
 ---
 
@@ -84,9 +101,9 @@ Debe llegarte un mensaje de prueba al chat.
 
 ### Servicio de scraping (tiendas con anti-bot)
 
-LordGun (Cloudflare) y Abus US (Akamai) bloquean al navegador headless, así que usan
-`method: scraper`, que enruta la petición por un servicio externo que resuelve el
-challenge y devuelve el HTML renderizado. Pasos:
+LordGun (Cloudflare) bloquea al navegador headless, así que usa `method: scraper`, que
+enruta la petición por un servicio externo que resuelve el challenge y devuelve el HTML
+renderizado. Pasos:
 
 1. Crea una cuenta en un proveedor (cualquiera de estos sirve; todos tienen plan
    gratuito que cubre de sobra ~6 peticiones/día):
@@ -102,18 +119,19 @@ challenge y devuelve el HTML renderizado. Pasos:
    define `SCRAPER_BASE_URL`, `SCRAPER_PARAMS` (JSON), `SCRAPER_KEY_PARAM`,
    `SCRAPER_URL_PARAM` (ver `.env.example`).
 
-> Si **no** configuras el servicio, esas dos tiendas quedan en `ERROR` (no rompen la
-> corrida) y el resto del monitor funciona normal. No hay falsos positivos.
+> Si **no** configuras el servicio, LordGun queda en `ERROR` (no rompe la corrida) y el
+> resto del monitor funciona normal. No hay falsos positivos.
 
-**Recordatorio de revisión manual.** LordGun y Abus llevan `manual_fallback: true`:
-si el scraper **no logra verificarlas** (quedan en `ERROR`), el monitor te manda un
+**Recordatorio de revisión manual.** LordGun, Abus oficial US y All4cycling llevan
+`manual_fallback: true`:
+si **no se logran verificar** (quedan en `ERROR`), el monitor te manda un
 recordatorio por Telegram tras la corrida para que revises la disponibilidad de la M a
 mano (con el link directo). Se envía un único mensaje consolidado por corrida, y solo
 mientras esas tiendas no se puedan leer solas; si el scraper empieza a funcionar, el
 recordatorio deja de enviarse y vuelve el aviso automático de disponibilidad.
 
-**Modo reforzado (`scraper_hard`).** LordGun (Cloudflare) y Abus (Akamai) tienen anti-bot
-duro; en `stores.yaml` llevan `scraper_hard: true`, que activa el modo premium del
+**Modo reforzado (`scraper_hard`).** LordGun (Cloudflare) tiene anti-bot
+duro; en `stores.yaml` lleva `scraper_hard: true`, que activa el modo premium del
 proveedor (ScraperAPI `ultra_premium`, ZenRows/ScrapingBee `premium_proxy`). **Consume
 más créditos por petición** (p. ej. ScraperAPI cobra ~10–30 créditos en vez de 1), así
 que revisa el plan de tu proveedor. Con 3 corridas/día son ~6 peticiones duras diarias.
@@ -170,7 +188,7 @@ El workflow `.github/workflows/check.yml` ya está incluido y corre a las
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
    - `SCRAPER_PROVIDER` y `SCRAPER_API_KEY` (opcionales; solo si quieres monitorear
-     LordGun/Abus, que están tras anti-bot)
+     LordGun, que está tras Cloudflare)
 2. El workflow instala dependencias + Chromium, ejecuta `python -m src.checker` y hace
    **commit/push de `state.json`** de vuelta a la rama (por eso `state.json` **no** está
    en `.gitignore`): así el estado sobrevive entre corridas en runners efímeros.

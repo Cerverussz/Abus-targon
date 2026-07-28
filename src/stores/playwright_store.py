@@ -15,7 +15,9 @@ from .base import (
     Detector,
     classify_text,
     is_antibot,
+    is_unreadable,
     make_result,
+    size_matches,
     text_has_any,
 )
 
@@ -121,6 +123,22 @@ class PlaywrightDetector(Detector):
                         error=f"bloqueo anti-bot (título={title[:60]!r})",
                     )
 
+                # Página en blanco (JS que no renderizó, muro de cookies vacío):
+                # no llegamos a ver el producto -> ERROR, no NO LISTADO. Es lo
+                # que venía pasando en All4cycling con título vacío.
+                if is_unreadable(full_text):
+                    logger.warning(
+                        "[%s] página sin contenido legible (%d chars).",
+                        store_key, len(full_text.strip()),
+                    )
+                    return make_result(
+                        store_key, cfg, Status.ERROR,
+                        error=(
+                            f"página sin contenido legible "
+                            f"({len(full_text.strip())} chars, título={title[:60]!r})"
+                        ),
+                    )
+
                 if detect.get("require_mips", False) and "mips" not in full_text.lower():
                     return make_result(store_key, cfg, Status.NOT_LISTED)
 
@@ -181,7 +199,7 @@ class PlaywrightDetector(Detector):
                     label = (opt.inner_text() or "").strip()
                 except Exception:  # noqa: BLE001
                     label = ""
-                if not text_has_any(label, size_keywords):
+                if not size_matches(label, size_keywords):
                     continue
                 disabled = self._is_disabled(opt)
                 m_selectable = not disabled

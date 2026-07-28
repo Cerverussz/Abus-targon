@@ -46,12 +46,33 @@ stores:
     country: España
     currency: EUR
     url: https://www.lordgunbicycles.es/casco-abus-targon-mips
-    # Cloudflare bloquea al headless y el plan free del scraper no lo supera:
-    # method "manual" -> no gasta llamadas y dispara recordatorio a Telegram.
-    # (Para volver al scraping automático: method: scraper + plan con proxies
-    #  premium; el bloque detect de scraper quedó documentado en el historial.)
-    method: manual
+    # Cloudflare bloquea al headless, así que va por el servicio de scraping
+    # (SCRAPER_PROVIDER/SCRAPER_API_KEY) en modo reforzado. Si el proveedor no
+    # supera el challenge, el detector devuelve ERROR (nunca AGOTADO) y
+    # manual_fallback manda el recordatorio a Telegram, igual que antes: en el
+    # peor caso nos quedamos como estábamos, y en el mejor se detecta sola.
+    method: scraper
     manual_fallback: true
+    detect:
+      require_mips: true
+      scraper_country: es
+      scraper_hard: true
+      size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium", "Mediana"]
+      size_selector: >-
+        select option, .size option, .sizes li, .product-sizes li,
+        [data-size], li[class*='size'], label[class*='size']
+      add_to_cart_selector: >-
+        button[name='add'], #add-to-cart, .add-to-cart, button.addtocart,
+        button[type='submit'][class*='cart']
+      price_selector: ".current-price, .product-price, .price, [itemprop='price']"
+      available_keywords: [
+        "añadir al carrito", "agregar al carrito", "add to cart",
+        "en stock", "disponible", "disponibilidad inmediata",
+      ]
+      unavailable_keywords: [
+        "agotado", "sin stock", "no disponible", "out of stock", "sold out",
+        "avísame", "avisame", "notificar", "no hay stock",
+      ]
 
   all4cycling:
     name: All4cycling
@@ -59,6 +80,9 @@ stores:
     currency: EUR
     url: https://www.all4cycling.com/en/products/casco-abus-targon-mips-nero
     method: playwright
+    # La página venía llegando vacía (título=''): ahora eso es ERROR, no
+    # NO LISTADO, y con manual_fallback avisa para revisarla a mano.
+    manual_fallback: true
     detect:
       require_mips: true
       size_keywords: ["M", "55-58", "55–58", "55 - 58", "Medium"]
