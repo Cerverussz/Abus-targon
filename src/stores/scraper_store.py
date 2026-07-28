@@ -20,7 +20,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from ..models import CheckResult, Status
-from .base import Detector, classify_text, is_antibot, make_result
+from .base import Detector, classify_text, is_antibot, is_unreadable, make_result
 from .static_store import _parse_price, _scope_text
 
 logger = logging.getLogger(__name__)
@@ -143,6 +143,17 @@ class ScraperDetector(Detector):
             return make_result(
                 store_key, cfg, Status.ERROR,
                 error="bloqueo anti-bot pese al servicio de scraping",
+            )
+
+        # El proveedor devolvió algo, pero sin contenido: no leímos el producto.
+        if is_unreadable(page_text):
+            logger.warning(
+                "[%s] el scraper devolvió una página vacía (%d chars).",
+                store_key, len(page_text.strip()),
+            )
+            return make_result(
+                store_key, cfg, Status.ERROR,
+                error=f"el scraper devolvió una página vacía ({len(page_text)} chars)",
             )
 
         if detect.get("require_mips", False) and "mips" not in page_text.lower():

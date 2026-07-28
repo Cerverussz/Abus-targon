@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 import httpx
 
 from ..models import CheckResult, Status
-from .base import DEFAULT_TIMEOUT, USER_AGENT, Detector, make_result, text_has_any
+from .base import DEFAULT_TIMEOUT, USER_AGENT, Detector, make_result, size_matches
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def _size_matches(variant: dict, size_keywords: list[str]) -> bool:
     haystack = " ".join(
         str(variant.get(k, "")) for k in ("title", "option1", "option2", "option3")
     )
-    return text_has_any(haystack, size_keywords) is not None
+    return size_matches(haystack, size_keywords) is not None
 
 
 def _price_of(variant: dict) -> float | None:
