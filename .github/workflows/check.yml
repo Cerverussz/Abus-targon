@@ -1,9 +1,11 @@
 name: Targon stock check
 
 on:
-  schedule:
-    # 13:00, 19:00 y 01:00 UTC  (≈ 8:00 a.m., 2:00 p.m. y 8:00 p.m. hora Colombia)
-    - cron: "0 13,19,1 * * *"
+  # PAUSADO: el objetivo se cumplió (casco comprado en talla M). Se desactivó el
+  # cron para no seguir corriendo. Para REACTIVAR, descomenta el bloque schedule.
+  # schedule:
+  #   # 13:00, 19:00 y 01:00 UTC  (≈ 8:00 a.m., 2:00 p.m. y 8:00 p.m. hora Colombia)
+  #   - cron: "0 13,19,1 * * *"
   workflow_dispatch:      # permite lanzar una corrida manual desde la pestaña Actions
     inputs:
       preview:
