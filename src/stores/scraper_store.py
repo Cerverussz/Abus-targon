@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import time
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -95,7 +96,13 @@ def _build_request(target_url: str, detect: dict) -> tuple[str, dict]:
 
 
 def _fetch_html(store_key: str, base: str, params: dict) -> str:
-    """GET al proveedor con reintentos ante 5xx/errores de red; loguea el cuerpo."""
+    """GET al proveedor con reintentos ante 5xx/errores de red; loguea el cuerpo.
+
+    El error final nombra el **endpoint del servicio de scraping**: aquí nunca
+    se contacta a la tienda, así que un fallo de red o de TLS es del proveedor,
+    y sin el host en el mensaje no hay forma de saberlo desde ``state.json``.
+    """
+    endpoint = urlparse(base).netloc or base
     last_exc: Exception | None = None
     with httpx.Client(timeout=SCRAPER_TIMEOUT, follow_redirects=True) as client:
         for attempt in range(1, SCRAPER_RETRIES + 2):
@@ -107,21 +114,25 @@ def _fetch_html(store_key: str, base: str, params: dict) -> str:
                 code = exc.response.status_code
                 body = (exc.response.text or "").strip().replace("\n", " ")[:200]
                 logger.warning(
-                    "[%s] scraper HTTP %s (intento %d/%d): %s",
-                    store_key, code, attempt, SCRAPER_RETRIES + 1, body,
+                    "[%s] scraper HTTP %s desde %s (intento %d/%d): %s",
+                    store_key, code, endpoint, attempt, SCRAPER_RETRIES + 1, body,
                 )
                 last_exc = exc
                 if code < 500 and code != 429:
                     break  # 4xx (salvo 429) = config/credenciales: no reintentar
             except httpx.HTTPError as exc:
                 logger.warning(
-                    "[%s] scraper error de red (intento %d/%d): %s",
-                    store_key, attempt, SCRAPER_RETRIES + 1, exc,
+                    "[%s] scraper error de red contra %s (intento %d/%d): %s",
+                    store_key, endpoint, attempt, SCRAPER_RETRIES + 1, exc,
                 )
                 last_exc = exc
             if attempt <= SCRAPER_RETRIES:
                 time.sleep(2 * attempt)
-    raise last_exc if last_exc else RuntimeError("fallo desconocido del scraper")
+    if last_exc is None:
+        raise RuntimeError(f"fallo desconocido del servicio de scraping ({endpoint})")
+    raise RuntimeError(
+        f"fallo del servicio de scraping {endpoint} (no de la tienda): {last_exc}"
+    ) from last_exc
 
 
 class ScraperDetector(Detector):

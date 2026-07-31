@@ -137,6 +137,13 @@ más créditos por petición** (p. ej. ScraperAPI cobra ~10–30 créditos en ve
 que revisa el plan de tu proveedor. Con 3 corridas/día son ~6 peticiones duras diarias.
 El detector reintenta ante errores 5xx/429 y registra el cuerpo del error para diagnóstico.
 
+**Cómo leer un fallo del scraper.** El detector solo llama al proveedor — nunca a la
+tienda —, así que un fallo de red o de TLS es del servicio, no de LordGun. El error
+guardado en `state.json` nombra el endpoint para que se distinga de un vistazo:
+`fallo del servicio de scraping api.scraperapi.com (no de la tienda): [SSL:
+CERTIFICATE_VERIFY_FAILED] ...`. Si el mensaje trae `CERTIFICATE_VERIFY_FAILED` o un
+`401`/`403`, revisa el proveedor o la API key; la tienda no tiene nada que ver.
+
 ### Corrida manual
 
 ```bash
